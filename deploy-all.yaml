@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: validate-e2e
+    name: validate-e2e
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        deployment: validate-e2e
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          deployment: validate-e2e
+      spec:
+        containers:
+        - image: quay.io/bmozaffa/validate-e2e
+          imagePullPolicy: Always
+          name: validate-e2e
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        serviceAccount: validate-e2e
+        serviceAccountName: validate-e2e
+        terminationGracePeriodSeconds: 30
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: validate-e2e-access
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    name: validate-e2e
+    namespace: validate-e2e
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: validate-e2e
