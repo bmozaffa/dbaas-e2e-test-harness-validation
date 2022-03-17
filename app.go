@@ -28,7 +28,7 @@ func main() {
 	//Expect(err).NotTo(HaveOccurred())
 
 	// Make sure the CRD exists
-	obj, err := apiextensions.ApiextensionsV1beta1().CustomResourceDefinitions().Get("dbaasplatforms.dbaas.redhat.com", v1.GetOptions{})
+	obj, err := apiextensions.ApiextensionsV1().CustomResourceDefinitions().Get("dbaasplatforms.dbaas.redhat.com", v1.GetOptions{})
 	fmt.Println("obj:", obj)
 	fmt.Println("Error:", err)
 
