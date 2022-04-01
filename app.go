@@ -1,44 +1,50 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"github.com/RHEcosystemAppEng/dbaas-e2e-test-harness/pkg/metadata"
-	"github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
+	"os"
+	"path/filepath"
 )
 
 func main() {
 	fmt.Println("Running")
+	var err error
+	var config *rest.Config
+	if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
+		var kubeconfig *string
+		if home := homedir.HomeDir(); home != "" {
+			kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+		} else {
+			kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+		}
+		flag.Parse()
 
-	defer ginkgo.GinkgoRecover()
-	config, err := rest.InClusterConfig()
-	fmt.Println("Config:", config)
-	fmt.Println("Error:", err)
+		// use the current context in kubeconfig
+		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	} else {
+		config, err = rest.InClusterConfig()
+	}
 	if err != nil {
-		fmt.Println(err)
-		panic(err)
+		panic(err.Error())
 	}
 
 	apiextensions, err := clientset.NewForConfig(config)
-	fmt.Println("API extensions:", apiextensions)
-	fmt.Println("Error:", err)
-	//Expect(err).NotTo(HaveOccurred())
-
-	// Make sure the CRD exists
-	obj, err := apiextensions.ApiextensionsV1().CustomResourceDefinitions().Get("dbaasplatforms.dbaas.redhat.com", v1.GetOptions{})
-	fmt.Println("obj:", obj)
-	fmt.Println("Error:", err)
-
 	if err != nil {
-		metadata.Instance.FoundCRD = false
-		fmt.Println(err)
-	} else {
-		metadata.Instance.FoundCRD = true
-		fmt.Println(obj)
+		panic(err.Error())
 	}
 
-	Expect(err).NotTo(HaveOccurred())
+	// Make sure the CRD exists
+	_, err = apiextensions.ApiextensionsV1().CustomResourceDefinitions().Get("dbaasplatforms.dbaas.redhat.com", v1.GetOptions{})
+
+	if err != nil {
+		fmt.Println("Error retrieving CRD", err)
+	} else {
+		fmt.Println("CRD found")
+	}
 }
